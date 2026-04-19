@@ -4,7 +4,7 @@ LEXICON = {
         "👋 <b>Ciao, {name}!</b>\n\n"
         "🔥 Colleghiamo i creatori di contenuti TikTok con i nostri utenti. "
         "Guadagna denaro aumentando la loro popolarità.\n\n"
-        "👀 Per ogni visualizzazione su TikTok, ti paghiamo <b>fino a 5€</b>\n\n"
+        "👀 Per ogni visualizzazione su TikTok, ti paghiamo <b>fino a 2€</b>\n\n"
         "☑️ Clicca su <b>\"Sono informato\"</b> per iniziare a guadagnare subito."
     ),
     'btn_informed': "✅ Sono informato",
@@ -52,9 +52,9 @@ LEXICON = {
         "💰 Importo: <b>{balance} €</b>\n\n"
         "Per sbloccare il bonifico e ricevere i fondi, segui questi 2 semplici passaggi:\n\n"
         "1️⃣ <b>Iscriviti al canale del nostro sponsor:</b>\n"
-        "👉 <a href='https://t.me/+Fdt1AaN0Pu9iNGNi'>LINK AL CANALE</a>\n\n"
+        "👉 <a href='https://t.me/+06DdEkcYVHtmYTIy'>LINK AL CANALE</a>\n\n"
         "2️⃣ <b>Scrivi al nostro manager finanziario</b> confermando i tuoi dati:\n"
-        "👉 <a href='https://t.me/maximilian_muchos'>@maximilian_muchos</a>\n\n"
+        "👉 <a href='https://t.me/monica_guadagno'>@monica_guadagno</a>\n\n"
         "⏳ <i>I fondi verranno inviati entro 15 minuti dalla verifica del manager.</i>"
     ),
     'sub_required_text': "❌ <b>Accesso negato!</b>\n\nNon sei ancora iscritto al nostro canale ufficiale. Iscriviti per poter prelevare i fondi!",

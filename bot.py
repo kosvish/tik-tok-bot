@@ -305,7 +305,12 @@ async def process_comment_text(message: types.Message, state: FSMContext):
         asyncio.create_task(delete_message_after(warn, 3))
         return
 
+    # Защита от короткого комментария
     if len(message.text) < 15:
+        try:
+            await message.delete()
+        except:
+            pass
         warn = await message.answer("⚠️ Il tuo commento è troppo corto! Scrivi almeno 15 caratteri.")
         asyncio.create_task(delete_message_after(warn, 3))
         return
@@ -317,22 +322,32 @@ async def process_comment_text(message: types.Message, state: FSMContext):
     new_balance = round(balance + current_reward, 2)
     new_video = current_video + 1
 
+    # Обновляем БД (базовый прогресс)
     db.update_user(message.from_user.id, new_balance, new_video)
+
+    # Пытаемся удалить текст коммента юзера из чата
     try:
         await message.delete()
     except:
         pass
 
-    if new_video > len(LEXICON['videos']):
+    # --- ФИНАЛ: ЕСЛИ ЭТО БЫЛО 10-Е ВИДЕО ---
+    if new_video > 10:
         total_balance = round(new_balance + 50.0, 2)
         text = LEXICON['finish_task'].format(balance=new_balance, total=total_balance)
         keyboard = InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton(text=LEXICON['btn_menu'], callback_data="main_menu")]
         ])
+
+        # Шлем поздравление
         await message.answer(text, reply_markup=keyboard, parse_mode="HTML")
+
+        # Чистим память и ЖЕЛЕЗОБЕТОННО сохраняем бонус в базу
         await state.update_data(balance=total_balance)
         await state.set_state(None)
         db.update_user(message.from_user.id, total_balance, new_video)
+
+    # --- ЕСЛИ ЕЩЕ ЕСТЬ ВИДЕО (1-9) ---
     else:
         await state.update_data(balance=new_balance, current_video=new_video)
         await send_video_task(message, new_video, new_balance, state, edit=False)
@@ -363,7 +378,7 @@ async def process_profile(callback: types.CallbackQuery, state: FSMContext):
     # Кнопки как на скрине профиля
     keyboard = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text=LEXICON['btn_earn'], callback_data="earn")],
-        [InlineKeyboardButton(text="🎁 Ricevi 10.000 €", url="https://t.me/+Fdt1AaN0Pu9iNGNi")],
+        [InlineKeyboardButton(text="🎁 Ricevi 10.000 €", url="https://t.me/+06DdEkcYVHtmYTIy")],
         [InlineKeyboardButton(text=LEXICON['btn_back'], callback_data="main_menu")]
     ])
 
