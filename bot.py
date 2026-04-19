@@ -259,7 +259,7 @@ async def process_task_done(callback: types.CallbackQuery, state: FSMContext):
     data = await state.get_data()
     unlock_time = data.get("unlock_time", 0)
 
-    # Защита от быстрых кликов (ТОТ САМЫЙ ALERT!)
+    # Защита от быстрых кликов
     if time.time() < unlock_time:
         await callback.answer(LEXICON['alert_too_fast'], show_alert=True)
         return
@@ -271,23 +271,39 @@ async def process_task_done(callback: types.CallbackQuery, state: FSMContext):
     new_balance = round(balance + current_reward, 2)
     new_video = current_video + 1
 
-    db.update_user(callback.from_user.id, new_balance, new_video)
     await callback.answer(f"✅ +{current_reward:.2f}€!", show_alert=False)
 
+    # --- ФИНАЛ: ЕСЛИ ЭТО БЫЛО 10-Е ВИДЕО ---
     if new_video > 10:
         total_balance = round(new_balance + 50.0, 2)
+
+        # ИСПРАВЛЕНИЕ БАГА: удаляем старое видео вместо того, чтобы делать ему edit_text
+        try:
+            await callback.message.delete()
+        except:
+            pass
+
         text = LEXICON['finish_task'].format(balance=new_balance, total=total_balance)
         keyboard = InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton(text=LEXICON['btn_menu'], callback_data="main_menu")]
         ])
-        await callback.message.edit_text(text, reply_markup=keyboard, parse_mode="HTML")
+
+        # Отправляем новый текст (вместо сломанного edit_text)
+        await callback.message.answer(text, reply_markup=keyboard, parse_mode="HTML")
+
+        # Закрытие сессии
         await state.update_data(balance=total_balance)
         await state.set_state(None)
+        db.update_user(callback.from_user.id, total_balance, new_video)
+
+    # --- ЕСЛИ ЕЩЕ ЕСТЬ ВИДЕО (1-9) ---
     else:
+        db.update_user(callback.from_user.id, new_balance, new_video)
         await state.update_data(balance=new_balance, current_video=new_video)
         await send_video_task(callback.message, new_video, new_balance, state)
 
 
+# --- ОБРАБОТКА КОММЕНТАРИЕВ ---
 @dp.message(VideoState.waiting_for_comment)
 async def process_comment_text(message: types.Message, state: FSMContext):
     data = await state.get_data()
@@ -322,10 +338,7 @@ async def process_comment_text(message: types.Message, state: FSMContext):
     new_balance = round(balance + current_reward, 2)
     new_video = current_video + 1
 
-    # Обновляем БД (базовый прогресс)
-    db.update_user(message.from_user.id, new_balance, new_video)
-
-    # Пытаемся удалить текст коммента юзера из чата
+    # Удаляем текст комментария юзера
     try:
         await message.delete()
     except:
@@ -334,21 +347,24 @@ async def process_comment_text(message: types.Message, state: FSMContext):
     # --- ФИНАЛ: ЕСЛИ ЭТО БЫЛО 10-Е ВИДЕО ---
     if new_video > 10:
         total_balance = round(new_balance + 50.0, 2)
+
+        # Используем .get() для безопасного форматирования, если вдруг ключей нет
         text = LEXICON['finish_task'].format(balance=new_balance, total=total_balance)
         keyboard = InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton(text=LEXICON['btn_menu'], callback_data="main_menu")]
         ])
 
-        # Шлем поздравление
+        # Шлем финальное сообщение (новым сообщением)
         await message.answer(text, reply_markup=keyboard, parse_mode="HTML")
 
-        # Чистим память и ЖЕЛЕЗОБЕТОННО сохраняем бонус в базу
+        # Железобетонное закрытие сессии
         await state.update_data(balance=total_balance)
         await state.set_state(None)
         db.update_user(message.from_user.id, total_balance, new_video)
 
     # --- ЕСЛИ ЕЩЕ ЕСТЬ ВИДЕО (1-9) ---
     else:
+        db.update_user(message.from_user.id, new_balance, new_video)
         await state.update_data(balance=new_balance, current_video=new_video)
         await send_video_task(message, new_video, new_balance, state, edit=False)
 
