@@ -353,6 +353,31 @@ async def process_comment_text(message: types.Message, state: FSMContext):
         await send_video_task(message, new_video, new_balance, state, edit=False)
 
 
+@dp.message(Command("reset"))  # Если у тебя роутеры, замени dp на router
+async def cmd_reset(message: types.Message, state: FSMContext):
+    # Обнуляем баланс и ставим 1-е видео
+    db.update_user(message.from_user.id, 0.0, 1)
+
+    # Очищаем память машины состояний
+    await state.clear()
+
+    await message.answer("🔄 <b>Прогресс сброшен!</b>\nТы на 1-м видео с балансом 0€.\nНажми /start", parse_mode="HTML")
+
+
+# Чит-код 2: Прыжок сразу на 10-е видео
+@dp.message(Command("jump"))  # Если у тебя роутеры, замени dp на router
+async def cmd_jump(message: types.Message, state: FSMContext):
+    # Ставим 10-е видео и баланс, например, 45 евро
+    db.update_user(message.from_user.id, 45.0, 10)
+
+    # Сохраняем это в память (чтобы логика бота подхватила)
+    await state.update_data(balance=45.0, current_video=10)
+
+    await message.answer(
+        "🦘 <b>Прыжок совершен!</b>\nТы на 10-м видео. Жми кнопку заработка и проверяй финальное задание!",
+        parse_mode="HTML")
+
+
 @dp.callback_query(F.data == "profile")
 async def process_profile(callback: types.CallbackQuery, state: FSMContext):
     user_id = callback.from_user.id
