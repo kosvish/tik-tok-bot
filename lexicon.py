@@ -28,7 +28,7 @@ LEXICON = {
     'finish_task': (
         "🎉 <b>Lavoro completato!</b>\n\n"
         "Hai guardato tutti i 10 video e hai guadagnato <b>{balance} €</b>!\n"
-        "🎁 Inoltre, ti abbiamo accreditato un BONUS di benvenuto di <b>50 €</b>.\n\n"
+        "🎁 Inoltre, ti abbiamo accreditato un BONUS di benvenuto di <b>20 €</b>.\n\n"
         "💳 <b>Saldo totale disponibile per il prelievo: {total} €</b>"
     ),
     'limit_reached': (
