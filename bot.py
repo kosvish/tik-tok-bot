@@ -12,13 +12,14 @@ from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, InputMedia
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.exceptions import TelegramBadRequest
-
+from aiogram.exceptions import TelegramBadRequest, TelegramRetryAfter
 from lexicon import LEXICON
 from database import Database
 
 # --- НАСТРОЙКИ ---
 ADMIN_ID = 636775647
 CHANNEL_ID = "-1003890716920"
+background_tasks = set()
 
 db = Database('bot.db')
 logging.basicConfig(level=logging.INFO)
@@ -159,8 +160,8 @@ async def cmd_start(message: types.Message, state: FSMContext):
     user_id = message.from_user.id
     user_name = message.from_user.first_name or "amico"
 
-    if not db.user_exists(user_id):
-        db.add_user(user_id, user_name)
+    if not await db.user_exists(user_id):
+        await db.add_user(user_id, user_name)
         await state.clear()
 
         text = LEXICON['welcome_msg'].format(name=user_name)
@@ -169,7 +170,7 @@ async def cmd_start(message: types.Message, state: FSMContext):
         ])
         await message.answer(text, reply_markup=keyboard, parse_mode="HTML")
     else:
-        balance, current_video = db.get_user(user_id)
+        balance, current_video = await db.get_user(user_id)
         if current_video <= 10:
             await message.answer("Bentornato! 📈 Continuiamo da dove avevi interrotto.")
             await state.update_data(balance=balance, current_video=current_video)
@@ -220,7 +221,7 @@ async def process_start_earning(callback: types.CallbackQuery, state: FSMContext
 @dp.callback_query(F.data == "earn")
 async def process_earn_button(callback: types.CallbackQuery, state: FSMContext):
     user_id = callback.from_user.id
-    user_data = db.get_user(user_id)
+    user_data = await db.get_user(user_id)
 
     # Защита от сбоев БД
     if not user_data:
@@ -276,10 +277,10 @@ async def process_task_done(callback: types.CallbackQuery, state: FSMContext):
 
     # --- ФИНАЛ: ЕСЛИ ЭТО БЫЛО 10-Е ВИДЕО ---
     if new_video > 10:
-        total_balance = round(new_balance + 50.0, 2)
+        total_balance = round(new_balance + 20.0, 2)
 
         # 1. ЖЕЛЕЗОБЕТОННО СОХРАНЯЕМ В БАЗУ (до отправки текста!)
-        db.update_user(callback.from_user.id, total_balance, new_video)
+        await db.update_user(callback.from_user.id, total_balance, new_video)
         await state.update_data(balance=total_balance)
         await state.set_state(None)
 
@@ -292,7 +293,7 @@ async def process_task_done(callback: types.CallbackQuery, state: FSMContext):
         try:
             text = LEXICON['finish_task'].format(balance=new_balance, total=total_balance)
         except Exception:
-            text = f"🎉 Hai completato tutto! Hai guadagnato {new_balance}€ + 50€ di bonus! Totale: {total_balance}€"
+            text = f"🎉 Hai completato tutto! Hai guadagnato {new_balance}€ + 20€ di bonus! Totale: {total_balance}€"
 
         keyboard = InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton(text=LEXICON.get('btn_menu', 'Menu'), callback_data="main_menu")]
@@ -305,7 +306,7 @@ async def process_task_done(callback: types.CallbackQuery, state: FSMContext):
 
     # --- ЕСЛИ ЕЩЕ ЕСТЬ ВИДЕО (1-9) ---
     else:
-        db.update_user(callback.from_user.id, new_balance, new_video)
+        await db.update_user(callback.from_user.id, new_balance, new_video)
         await state.update_data(balance=new_balance, current_video=new_video)
         await send_video_task(callback.message, new_video, new_balance, state)
 
@@ -325,7 +326,11 @@ async def process_comment_text(message: types.Message, state: FSMContext):
         except:
             pass
         warn = await message.answer(f"⏳ Non hai guardato tutto il video! Aspetta ancora {remaining} sec.")
-        asyncio.create_task(delete_message_after(warn, 3))
+
+        # Безопасный запуск фоновой задачи
+        task = asyncio.create_task(delete_message_after(warn, 3))
+        background_tasks.add(task)
+        task.add_done_callback(background_tasks.discard)
         return
 
     # Защита от короткого комментария
@@ -352,10 +357,10 @@ async def process_comment_text(message: types.Message, state: FSMContext):
 
     # --- ФИНАЛ: ЕСЛИ ЭТО БЫЛО 10-Е ВИДЕО ---
     if new_video > 10:
-        total_balance = round(new_balance + 50.0, 2)
+        total_balance = round(new_balance + 20.0, 2)
 
         # 1. ЖЕЛЕЗОБЕТОННО СОХРАНЯЕМ В БАЗУ (до отправки текста!)
-        db.update_user(message.from_user.id, total_balance, new_video)
+        await db.update_user(message.from_user.id, total_balance, new_video)
         await state.update_data(balance=total_balance)
         await state.set_state(None)
 
@@ -364,7 +369,7 @@ async def process_comment_text(message: types.Message, state: FSMContext):
             text = LEXICON['finish_task'].format(balance=new_balance, total=total_balance)
         except Exception:
             # Если в lexicon.py ошибка, бот выдаст этот резервный текст и пойдет дальше
-            text = f"🎉 Hai completato tutto! Hai guadagnato {new_balance}€ + 50€ di bonus! Totale: {total_balance}€"
+            text = f"🎉 Hai completato tutto! Hai guadagnato {new_balance}€ + 20€ di bonus! Totale: {total_balance}€"
 
         keyboard = InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton(text=LEXICON.get('btn_menu', 'Menu'), callback_data="main_menu")]
@@ -377,7 +382,7 @@ async def process_comment_text(message: types.Message, state: FSMContext):
 
     # --- ЕСЛИ ЕЩЕ ЕСТЬ ВИДЕО (1-9) ---
     else:
-        db.update_user(message.from_user.id, new_balance, new_video)
+        await db.update_user(message.from_user.id, new_balance, new_video)
         await state.update_data(balance=new_balance, current_video=new_video)
         await send_video_task(message, new_video, new_balance, state, edit=False)
 
@@ -385,7 +390,7 @@ async def process_comment_text(message: types.Message, state: FSMContext):
 @dp.message(Command("reset"))  # Если у тебя роутеры, замени dp на router
 async def cmd_reset(message: types.Message, state: FSMContext):
     # Обнуляем баланс и ставим 1-е видео
-    db.update_user(message.from_user.id, 0.0, 1)
+    await db.update_user(message.from_user.id, 0.0, 1)
 
     # Очищаем память машины состояний
     await state.clear()
@@ -397,7 +402,7 @@ async def cmd_reset(message: types.Message, state: FSMContext):
 @dp.message(Command("jump"))  # Если у тебя роутеры, замени dp на router
 async def cmd_jump(message: types.Message, state: FSMContext):
     # Ставим 10-е видео и баланс, например, 45 евро
-    db.update_user(message.from_user.id, 45.0, 10)
+    await db.update_user(message.from_user.id, 45.0, 10)
 
     # Сохраняем это в память (чтобы логика бота подхватила)
     await state.update_data(balance=45.0, current_video=10)
@@ -414,7 +419,7 @@ async def process_profile(callback: types.CallbackQuery, state: FSMContext):
     # Получаем юзернейм или ставим заглушку, если его нет
     username = callback.from_user.username or "Senza_username"
 
-    user_data = db.get_user(user_id)
+    user_data = await db.get_user(user_id)
     if user_data:
         balance, current_video = user_data
     else:
@@ -452,7 +457,7 @@ async def process_profile(callback: types.CallbackQuery, state: FSMContext):
 async def process_withdraw(callback: types.CallbackQuery, state: FSMContext):
     data = await state.get_data()
     # На всякий случай берем актуальный баланс из БД
-    user_data = db.get_user(callback.from_user.id)
+    user_data = await db.get_user(callback.from_user.id)
     balance = user_data[0] if user_data else data.get("balance", 0)
 
     text = LEXICON['withdraw_text'].format(balance=f"{balance:.2f}")
@@ -528,7 +533,7 @@ async def check_user_subscription(callback: types.CallbackQuery):
         else:
             await callback.answer("✅ Verifica completata!", show_alert=False)
             keyboard = InlineKeyboardMarkup(inline_keyboard=[
-                [InlineKeyboardButton(text="📱 Contatta il Manager", url="https://t.me/maximilian_muchos")],
+                [InlineKeyboardButton(text="📱 Contatta il Manager", url="https://t.me/monica_guadagno")],
                 [InlineKeyboardButton(text=LEXICON['btn_back'], callback_data="main_menu")]
             ])
             await callback.message.edit_text(LEXICON['sub_success'], reply_markup=keyboard, parse_mode="HTML")
@@ -579,7 +584,7 @@ async def admin_panel(message: types.Message):
 @dp.callback_query(F.data == "admin_stats")
 async def show_stats(callback: types.CallbackQuery):
     if callback.from_user.id != ADMIN_ID: return
-    total_users, total_money = db.get_stats()
+    total_users, total_money = await db.get_stats()
     now = datetime.datetime.now().strftime("%H:%M:%S")
     text = (
         f"📊 <b>Текущая статистика:</b>\n\n"
@@ -608,7 +613,7 @@ async def start_broadcast(callback: types.CallbackQuery, state: FSMContext):
 @dp.message(AdminState.waiting_for_broadcast_text)
 async def perform_broadcast(message: types.Message, state: FSMContext):
     if message.from_user.id != ADMIN_ID: return
-    users = db.get_all_users()
+    users = await db.get_all_users()
     count = 0
     error_count = 0
     status_msg = await message.answer(f"🚀 Начинаю рассылку на {len(users)} чел...")
@@ -616,9 +621,17 @@ async def perform_broadcast(message: types.Message, state: FSMContext):
         try:
             await message.send_copy(chat_id=user_id)
             count += 1
-            await asyncio.sleep(0.05)
+            await asyncio.sleep(0.05)  # 20 сообщений в секунду (безопасный лимит)
+
+        except TelegramRetryAfter as e:
+            # Если Телеграм просит притормозить - мы слушаемся!
+            print(f"Поймали флуд-лимит. Ждем {e.retry_after} секунд...")
+            await asyncio.sleep(e.retry_after)
+            await message.send_copy(chat_id=user_id)  # Пробуем еще раз
+            count += 1
+
         except Exception:
-            error_count += 1
+            error_count += 1  # Юзер заблокировал бота
     await status_msg.edit_text(f"✅ <b>Рассылка завершена!</b>\n\n"
                                f"📈 Доставлено: {count}\n"
                                f"📉 Заблокировали бота: {error_count}", parse_mode="HTML")
