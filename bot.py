@@ -104,8 +104,8 @@ async def send_video_task(message: types.Message, current_video: int, balance: f
 
         inline_kb = [
             [
-                InlineKeyboardButton(text=f"👍 (+{reward:.2f}€)", callback_data="task_done"),
-                InlineKeyboardButton(text=f"👎 (+{reward:.2f}€)", callback_data="task_done")
+                InlineKeyboardButton(text=f"👍 (+{reward:.2f}€)", callback_data="task_done", style='success'),
+                InlineKeyboardButton(text=f"👎 (+{reward:.2f}€)", callback_data="task_done", style='danger'),
             ],
             [InlineKeyboardButton(text=LEXICON['btn_finish'], callback_data="main_menu")]
         ]
