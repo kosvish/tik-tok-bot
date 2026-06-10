@@ -1,4 +1,5 @@
 import aiosqlite
+import datetime
 
 
 class Database:
@@ -15,6 +16,7 @@ class Database:
                     current_video INTEGER DEFAULT 1
                 )
             """)
+            # send_weekday: 0=Пн, 1=Вт, 2=Ср, 3=Чт, 4=Пт, 5=Сб, 6=Вс
             await db.execute("""
                 CREATE TABLE IF NOT EXISTS push_notifications (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -22,6 +24,7 @@ class Database:
                     content_type TEXT NOT NULL,
                     text TEXT,
                     file_id TEXT,
+                    send_weekday INTEGER NOT NULL,
                     send_time TEXT NOT NULL,
                     created_at TEXT NOT NULL,
                     is_active INTEGER DEFAULT 1
@@ -78,53 +81,71 @@ class Database:
 
     # ───── ПУШ-УВЕДОМЛЕНИЯ ─────
 
-    async def add_push(self, title: str, content_type: str, send_time: str,
+    async def add_push(self, title: str, content_type: str,
+                       send_weekday: int, send_time: str,
                        text: str = None, file_id: str = None):
-        """
-        content_type: 'text' | 'photo' | 'video' | 'photo_text' | 'video_text'
-        send_time: 'HH:MM' по итальянскому времени
-        """
-        import datetime
         created_at = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         async with aiosqlite.connect(self.db_file) as db:
             await db.execute(
                 """INSERT INTO push_notifications
-                   (title, content_type, text, file_id, send_time, created_at, is_active)
-                   VALUES (?, ?, ?, ?, ?, ?, 1)""",
-                (title, content_type, text, file_id, send_time, created_at)
+                   (title, content_type, text, file_id, send_weekday, send_time, created_at, is_active)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, 1)""",
+                (title, content_type, text, file_id, send_weekday, send_time, created_at)
+            )
+            await db.commit()
+
+    async def update_push(self, push_id: int, title: str, content_type: str,
+                          send_weekday: int, send_time: str,
+                          text: str = None, file_id: str = None):
+        async with aiosqlite.connect(self.db_file) as db:
+            await db.execute(
+                """UPDATE push_notifications
+                   SET title=?, content_type=?, text=?, file_id=?,
+                       send_weekday=?, send_time=?, is_active=1
+                   WHERE id=?""",
+                (title, content_type, text, file_id, send_weekday, send_time, push_id)
             )
             await db.commit()
 
     async def get_all_pushes(self):
-        """Вернуть все активные пуши."""
         async with aiosqlite.connect(self.db_file) as db:
             async with db.execute(
-                "SELECT id, title, content_type, send_time, is_active FROM push_notifications ORDER BY id DESC"
+                """SELECT id, title, content_type, send_weekday, send_time, is_active
+                   FROM push_notifications ORDER BY id DESC"""
             ) as cursor:
                 return await cursor.fetchall()
 
     async def get_push_by_id(self, push_id: int):
-        """Полные данные одного пуша."""
         async with aiosqlite.connect(self.db_file) as db:
             async with db.execute(
-                "SELECT id, title, content_type, text, file_id, send_time, is_active "
-                "FROM push_notifications WHERE id = ?",
+                """SELECT id, title, content_type, text, file_id,
+                          send_weekday, send_time, is_active
+                   FROM push_notifications WHERE id = ?""",
                 (push_id,)
             ) as cursor:
                 return await cursor.fetchone()
 
-    async def get_active_pushes_for_time(self, send_time: str):
-        """Все активные пуши с указанным временем отправки."""
+    async def get_active_pushes_for_schedule(self, weekday: int, send_time: str):
+        """Активные пуши на конкретный день недели и время."""
         async with aiosqlite.connect(self.db_file) as db:
             async with db.execute(
-                "SELECT id, title, content_type, text, file_id, send_time "
-                "FROM push_notifications WHERE is_active = 1 AND send_time = ?",
-                (send_time,)
+                """SELECT id, title, content_type, text, file_id
+                   FROM push_notifications
+                   WHERE is_active = 1 AND send_weekday = ? AND send_time = ?""",
+                (weekday, send_time)
             ) as cursor:
                 return await cursor.fetchall()
 
+    async def deactivate_push(self, push_id: int):
+        """Отключить пуш после отправки (одноразовый)."""
+        async with aiosqlite.connect(self.db_file) as db:
+            await db.execute(
+                "UPDATE push_notifications SET is_active = 0 WHERE id = ?",
+                (push_id,)
+            )
+            await db.commit()
+
     async def delete_push(self, push_id: int):
-        """Удалить пуш полностью."""
         async with aiosqlite.connect(self.db_file) as db:
             await db.execute(
                 "DELETE FROM push_notifications WHERE id = ?", (push_id,)
@@ -132,7 +153,6 @@ class Database:
             await db.commit()
 
     async def toggle_push(self, push_id: int):
-        """Включить / выключить пуш. Возвращает новый статус."""
         async with aiosqlite.connect(self.db_file) as db:
             async with db.execute(
                 "SELECT is_active FROM push_notifications WHERE id = ?", (push_id,)
