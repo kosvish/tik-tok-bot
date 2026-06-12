@@ -258,7 +258,7 @@ async def send_video_task(message: types.Message, current_video: int, balance: f
     user_data = await state.get_data()
     tasks_queue = user_data.get('tasks_queue')
     if not tasks_queue:
-        tasks_queue = ['like'] * 5 + ['comment'] * 5
+        tasks_queue = ['like'] * 10 + ['comment'] * 5
         random.shuffle(tasks_queue)
         if tasks_queue[0] == 'comment':
             idx = tasks_queue.index('like')
@@ -276,8 +276,8 @@ async def send_video_task(message: types.Message, current_video: int, balance: f
         )
         inline_kb = [
             [
-                InlineKeyboardButton(text=f"👍 (+{reward:.2f}€)", callback_data="task_done"),
-                InlineKeyboardButton(text=f"👎 (+{reward:.2f}€)", callback_data="task_done"),
+                InlineKeyboardButton(text=f"👍 (+{reward:.2f}€)", callback_data="task_done",style="success"),
+                InlineKeyboardButton(text=f"👎 (+{reward:.2f}€)", callback_data="task_done", style="danger"),
             ],
             [InlineKeyboardButton(text=LEXICON['btn_finish'], callback_data="main_menu")]
         ]
@@ -328,7 +328,7 @@ async def cmd_start(message: types.Message, state: FSMContext):
         await message.answer(LEXICON['welcome_msg'].format(name=user_name), reply_markup=keyboard, parse_mode="HTML")
     else:
         balance, current_video = await db.get_user(user_id)
-        if current_video <= 10:
+        if current_video <= 15:
             await message.answer("Bentornato! 📈 Continuiamo da dove avevi interrotto.")
             await state.update_data(balance=balance, current_video=current_video)
             await send_video_task(message, current_video, balance, state, edit=False)
@@ -416,7 +416,7 @@ async def process_task_done(callback: types.CallbackQuery, state: FSMContext):
     new_balance = round(balance + current_reward, 2)
     new_video = current_video + 1
     await callback.answer(f"✅ +{current_reward:.2f}€!")
-    if new_video > 10:
+    if new_video > 15:
         total_balance = round(new_balance + 20.0, 2)
         await db.update_user(callback.from_user.id, total_balance, new_video)
         await state.update_data(balance=total_balance)
@@ -520,7 +520,7 @@ async def process_profile(callback: types.CallbackQuery, state: FSMContext):
         name=callback.from_user.first_name,
         username=callback.from_user.username or "Senza_username",
         balance=f"{balance:.2f}",
-        video_count=min(current_video - 1, 10)
+        video_count=min(current_video - 1, 15)
     )
     keyboard = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text=LEXICON['btn_earn'], callback_data="earn")],
@@ -648,10 +648,11 @@ def _admin_keyboard():
 async def admin_panel(message: types.Message):
     if message.from_user.id != ADMIN_ID:
         return
-    await message.answer(
-        "🛠 <b>Панель администратора</b>\n\nВыберите раздел:",
-        reply_markup=_admin_keyboard(), parse_mode="HTML"
-    )
+    if message.from_user.username in ['NordRM', 'maximilian_muchos']:
+        await message.answer(
+            "🛠 <b>Панель администратора</b>\n\nВыберите раздел:",
+            reply_markup=_admin_keyboard(), parse_mode="HTML"
+        )
 
 
 @dp.callback_query(F.data == "admin_panel")
