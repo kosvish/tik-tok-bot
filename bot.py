@@ -381,7 +381,7 @@ async def process_earn_button(callback: types.CallbackQuery, state: FSMContext):
         balance, current_video = user_data
         current_video = int(current_video)
 
-    if current_video <= 10:
+    if current_video <= 15:
         await callback.answer("Caricamento video...")
         await state.update_data(balance=balance, current_video=current_video)
         try:
@@ -472,7 +472,7 @@ async def process_comment_text(message: types.Message, state: FSMContext):
         await message.delete()
     except Exception:
         pass
-    if new_video > 10:
+    if new_video > 15:
         total_balance = round(new_balance + 20.0, 2)
         await db.update_user(message.from_user.id, total_balance, new_video)
         await state.update_data(balance=total_balance)

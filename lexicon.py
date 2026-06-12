@@ -13,7 +13,7 @@ LEXICON = {
     'video_task': (
         "✅ <b>Visualizzazione registrata</b>\n"
         "✳️ <b>Premio: +{reward} €</b>\n"
-        "✅ <b>Completato: {current} di 10</b>\n\n"
+        "✅ <b>Completato: {current} di 15</b>\n\n"
         "💰 <b>Il tuo saldo: {balance} €</b>\n\n"
         "👇 <b>AZIONE RICHIESTA:</b>\n{task_text}"
     ),
@@ -27,7 +27,7 @@ LEXICON = {
     'btn_finish': "🏁 Termina sessione",
     'finish_task': (
         "🎉 <b>Lavoro completato!</b>\n\n"
-        "Hai guardato tutti i 10 video e hai guadagnato <b>{balance} €</b>!\n"
+        "Hai guardato tutti i 15 video e hai guadagnato <b>{balance} €</b>!\n"
         "🎁 Inoltre, ti abbiamo accreditato un BONUS di benvenuto di <b>20 €</b>.\n\n"
         "💳 <b>Saldo totale disponibile per il prelievo: {total} €</b>"
     ),
