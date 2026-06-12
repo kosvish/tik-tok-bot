@@ -410,9 +410,12 @@ async def process_task_done(callback: types.CallbackQuery, state: FSMContext):
     if time.time() < data.get("unlock_time", 0):
         await callback.answer(LEXICON['alert_too_fast'], show_alert=True)
         return
-    balance = data.get("balance", 0.0)
+    user_id = callback.from_user.id
+    user_data = await db.get_user(user_id)
+    balance = float(user_data[0]) if user_data else 0.0
     current_reward = data.get("current_reward", 1.0)
-    current_video = data.get("current_video", 1)
+    user_data = await db.get_user(callback.from_user.id)
+    current_video = int(user_data[1]) if user_data else 1
     new_balance = round(balance + current_reward, 2)
     new_video = current_video + 1
     await callback.answer(f"✅ +{current_reward:.2f}€!")
@@ -465,7 +468,8 @@ async def process_comment_text(message: types.Message, state: FSMContext):
         return
     balance = data.get("balance", 0.0)
     current_reward = data.get("current_reward", 1.0)
-    current_video = data.get("current_video", 1)
+    user_data = await db.get_user(message.from_user.id)
+    current_video = int(user_data[1]) if user_data else 1
     new_balance = round(balance + current_reward, 2)
     new_video = current_video + 1
     try:
