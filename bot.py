@@ -22,7 +22,7 @@ from database import Database
 # ─────────────────────────────────────────
 #  НАСТРОЙКИ
 # ─────────────────────────────────────────
-ADMIN_ID = 636775647
+ADMIN_IDS = {636775647, 5448257664}
 CHANNEL_ID = "-1003890716920"
 ITALY_TZ = pytz.timezone("Europe/Rome")
 
@@ -215,7 +215,7 @@ async def handle_video(message: types.Message, state: FSMContext):
             )
             await message.answer("✅ Видео принято!\n\n✍️ Теперь введите <b>текст</b> подписи:", parse_mode="HTML")
         return
-    if message.from_user.id == ADMIN_ID:
+    if message.from_user.id not in ADMIN_IDS:
         await message.reply(f"✅ <b>File ID видео:</b>\n\n<code>{message.video.file_id}</code>", parse_mode="HTML")
 
 
@@ -246,7 +246,7 @@ async def handle_photo(message: types.Message, state: FSMContext):
             )
             await message.answer("✅ Фото принято!\n\n✍️ Теперь введите <b>текст</b> подписи:", parse_mode="HTML")
         return
-    if message.from_user.id == ADMIN_ID:
+    if message.from_user.id not in ADMIN_IDS:
         await message.reply(f"✅ <b>File ID фото:</b>\n\n<code>{message.photo[-1].file_id}</code>", parse_mode="HTML")
 
 
@@ -650,10 +650,9 @@ def _admin_keyboard():
 
 @dp.message(Command("admin"))
 async def admin_panel(message: types.Message):
-    if message.from_user.id != ADMIN_ID:
+    if message.from_user.id not in ADMIN_IDS:
         return
-    if message.from_user.username in ['NordRM', 'maximilian_muchos']:
-        await message.answer(
+    await message.answer(
             "🛠 <b>Панель администратора</b>\n\nВыберите раздел:",
             reply_markup=_admin_keyboard(), parse_mode="HTML"
         )
@@ -661,7 +660,7 @@ async def admin_panel(message: types.Message):
 
 @dp.callback_query(F.data == "admin_panel")
 async def back_to_admin(callback: types.CallbackQuery, state: FSMContext):
-    if callback.from_user.id != ADMIN_ID:
+    if callback.message.from_user.id not in ADMIN_IDS:
         return
     await state.clear()
     try:
@@ -719,7 +718,7 @@ async def start_broadcast(callback: types.CallbackQuery, state: FSMContext):
 
 @dp.message(AdminState.waiting_for_broadcast_text)
 async def perform_broadcast(message: types.Message, state: FSMContext):
-    if message.from_user.id != ADMIN_ID:
+    if message.from_user.id not in ADMIN_IDS:
         return
     users = await db.get_all_users()
     count = 0
@@ -800,7 +799,7 @@ async def push_add_start(callback: types.CallbackQuery, state: FSMContext):
 
 @dp.message(PushState.waiting_for_title)
 async def push_got_title(message: types.Message, state: FSMContext):
-    if message.from_user.id != ADMIN_ID:
+    if message.from_user.id not in ADMIN_IDS:
         return
     await state.update_data(title=message.text.strip())
     await state.set_state(PushState.waiting_for_type)
@@ -855,7 +854,7 @@ async def push_got_weekday(callback: types.CallbackQuery, state: FSMContext):
 
 @dp.message(PushState.waiting_for_text)
 async def push_got_text(message: types.Message, state: FSMContext):
-    if message.from_user.id != ADMIN_ID:
+    if message.from_user.id not in ADMIN_IDS:
         return
     await state.update_data(text=message.text)
     data = await state.get_data()
@@ -873,7 +872,7 @@ async def push_got_text(message: types.Message, state: FSMContext):
 
 @dp.message(PushState.waiting_for_time)
 async def push_got_time(message: types.Message, state: FSMContext):
-    if message.from_user.id != ADMIN_ID:
+    if message.from_user.id not in ADMIN_IDS:
         return
     send_time = _parse_time(message.text.strip())
     if not send_time:
@@ -1059,7 +1058,7 @@ async def pedit_title(callback: types.CallbackQuery, state: FSMContext):
 
 @dp.message(PushEditState.waiting_for_title)
 async def pedit_got_title(message: types.Message, state: FSMContext):
-    if message.from_user.id != ADMIN_ID:
+    if message.from_user.id not in ADMIN_IDS:
         return
     await state.update_data(title=message.text.strip())
     await state.set_state(PushEditState.choosing_field)
@@ -1116,7 +1115,7 @@ async def pedit_time(callback: types.CallbackQuery, state: FSMContext):
 
 @dp.message(PushEditState.waiting_for_time)
 async def pedit_got_time(message: types.Message, state: FSMContext):
-    if message.from_user.id != ADMIN_ID:
+    if message.from_user.id not in ADMIN_IDS:
         return
     send_time = _parse_time(message.text.strip())
     if not send_time:
@@ -1137,7 +1136,7 @@ async def pedit_text(callback: types.CallbackQuery, state: FSMContext):
 
 @dp.message(PushEditState.waiting_for_text)
 async def pedit_got_text(message: types.Message, state: FSMContext):
-    if message.from_user.id != ADMIN_ID:
+    if message.from_user.id not in ADMIN_IDS:
         return
     await state.update_data(text=message.text)
     await state.set_state(PushEditState.choosing_field)
