@@ -161,7 +161,7 @@ async def send_scheduled_push():
 
         try:
             await bot.send_message(
-                ADMIN_ID,
+                636775647,
                 f"📬 <b>Пуш отправлен и остановлен!</b>\n\n"
                 f"📌 Название: <b>{title}</b>\n"
                 f"✅ Доставлено: {sent}\n"
@@ -269,7 +269,7 @@ async def send_video_task(message: types.Message, current_video: int, balance: f
 
     if task_type == 'like':
         reward = random.choice([0.70, 0.90, 1.20])
-        duration = 0 if message.chat.id == ADMIN_ID else 10
+        duration = 0 if message.chat.id in ADMIN_IDS else 10
         caption = LEXICON['video_task'].format(
             current=current_video, reward=f"{reward:.2f}",
             task_text=LEXICON['task_like_dislike']['text'], balance=f"{balance:.2f}"
@@ -284,7 +284,7 @@ async def send_video_task(message: types.Message, current_video: int, balance: f
         await state.set_state(VideoState.waiting_for_click)
     else:
         reward = random.choice([2.50, 3.00, 3.50])
-        duration = 0 if message.chat.id == ADMIN_ID else 10
+        duration = 0 if message.chat.id in ADMIN_IDS else 10
         caption = LEXICON['video_task'].format(
             current=current_video, reward=f"{reward:.2f}",
             task_text=LEXICON['task_comment']['text'], balance=f"{balance:.2f}"
@@ -660,7 +660,7 @@ async def admin_panel(message: types.Message):
 
 @dp.callback_query(F.data == "admin_panel")
 async def back_to_admin(callback: types.CallbackQuery, state: FSMContext):
-    if callback.message.from_user.id not in ADMIN_IDS:
+    if callback.from_user.id not in ADMIN_IDS:
         return
     await state.clear()
     try:
@@ -679,7 +679,7 @@ async def back_to_admin(callback: types.CallbackQuery, state: FSMContext):
 # ───── СТАТИСТИКА ─────
 @dp.callback_query(F.data == "admin_stats")
 async def show_stats(callback: types.CallbackQuery):
-    if callback.from_user.id != ADMIN_ID:
+    if callback.from_user.id not in ADMIN_IDS:
         return
     total_users, total_money = await db.get_stats()
     pushes = await db.get_all_pushes()
@@ -705,7 +705,7 @@ async def show_stats(callback: types.CallbackQuery):
 # ───── БЫСТРАЯ РАССЫЛКА ─────
 @dp.callback_query(F.data == "admin_broadcast")
 async def start_broadcast(callback: types.CallbackQuery, state: FSMContext):
-    if callback.from_user.id != ADMIN_ID:
+    if callback.from_user.id not in ADMIN_IDS:
         return
     await callback.message.answer(
         "📢 <b>Быстрая рассылка</b>\n\n"
@@ -751,7 +751,7 @@ async def perform_broadcast(message: types.Message, state: FSMContext):
 
 @dp.callback_query(F.data == "admin_pushes")
 async def admin_pushes_menu(callback: types.CallbackQuery, state: FSMContext):
-    if callback.from_user.id != ADMIN_ID:
+    if callback.from_user.id not in ADMIN_IDS:
         return
     await state.clear()
     keyboard = InlineKeyboardMarkup(inline_keyboard=[
@@ -784,7 +784,7 @@ async def admin_pushes_menu(callback: types.CallbackQuery, state: FSMContext):
 
 @dp.callback_query(F.data == "push_add")
 async def push_add_start(callback: types.CallbackQuery, state: FSMContext):
-    if callback.from_user.id != ADMIN_ID:
+    if callback.from_user.id not in ADMIN_IDS:
         return
     await state.clear()
     await state.set_state(PushState.waiting_for_title)
@@ -811,7 +811,7 @@ async def push_got_title(message: types.Message, state: FSMContext):
 
 @dp.callback_query(PushState.waiting_for_type, F.data.startswith("ptype_"))
 async def push_got_type(callback: types.CallbackQuery, state: FSMContext):
-    if callback.from_user.id != ADMIN_ID:
+    if callback.from_user.id not in ADMIN_IDS:
         return
     content_type = callback.data.replace("ptype_", "")
     await state.update_data(content_type=content_type)
@@ -825,7 +825,7 @@ async def push_got_type(callback: types.CallbackQuery, state: FSMContext):
 
 @dp.callback_query(PushState.waiting_for_weekday, F.data.startswith("push_weekday_"))
 async def push_got_weekday(callback: types.CallbackQuery, state: FSMContext):
-    if callback.from_user.id != ADMIN_ID:
+    if callback.from_user.id not in ADMIN_IDS:
         return
     weekday = int(callback.data.replace("push_weekday_", ""))
     await state.update_data(send_weekday=weekday)
@@ -912,7 +912,7 @@ async def push_got_time(message: types.Message, state: FSMContext):
 
 @dp.callback_query(F.data == "push_list")
 async def push_list(callback: types.CallbackQuery):
-    if callback.from_user.id != ADMIN_ID:
+    if callback.from_user.id not in ADMIN_IDS:
         return
     pushes = await db.get_all_pushes()
     if not pushes:
@@ -955,7 +955,7 @@ async def push_list(callback: types.CallbackQuery):
 
 @dp.callback_query(F.data.startswith("push_toggle_"))
 async def push_toggle(callback: types.CallbackQuery):
-    if callback.from_user.id != ADMIN_ID:
+    if callback.from_user.id not in ADMIN_IDS:
         return
     push_id = int(callback.data.replace("push_toggle_", ""))
     new_status = await db.toggle_push(push_id)
@@ -970,7 +970,7 @@ async def push_toggle(callback: types.CallbackQuery):
 
 @dp.callback_query(F.data == "push_edit_list")
 async def push_edit_list(callback: types.CallbackQuery):
-    if callback.from_user.id != ADMIN_ID:
+    if callback.from_user.id not in ADMIN_IDS:
         return
     pushes = await db.get_all_pushes()
     if not pushes:
@@ -1008,7 +1008,7 @@ async def push_edit_list(callback: types.CallbackQuery):
 
 @dp.callback_query(F.data.startswith("push_edit_") & ~F.data.startswith("push_edit_list"))
 async def push_edit_show(callback: types.CallbackQuery, state: FSMContext):
-    if callback.from_user.id != ADMIN_ID:
+    if callback.from_user.id not in ADMIN_IDS:
         return
     push_id = int(callback.data.replace("push_edit_", ""))
     push = await db.get_push_by_id(push_id)
@@ -1153,7 +1153,7 @@ async def pedit_media(callback: types.CallbackQuery, state: FSMContext):
 
 @dp.callback_query(PushEditState.choosing_field, F.data == "pedit_save")
 async def pedit_save(callback: types.CallbackQuery, state: FSMContext):
-    if callback.from_user.id != ADMIN_ID:
+    if callback.from_user.id not in ADMIN_IDS:
         return
     data = await state.get_data()
     push_id = data.get("edit_push_id")
@@ -1190,7 +1190,7 @@ async def pedit_save(callback: types.CallbackQuery, state: FSMContext):
 
 @dp.callback_query(F.data == "push_delete_list")
 async def push_delete_list(callback: types.CallbackQuery):
-    if callback.from_user.id != ADMIN_ID:
+    if callback.from_user.id not in ADMIN_IDS:
         return
     pushes = await db.get_all_pushes()
     if not pushes:
@@ -1227,7 +1227,7 @@ async def push_delete_list(callback: types.CallbackQuery):
 
 @dp.callback_query(F.data.startswith("push_confirm_del_"))
 async def push_confirm_delete(callback: types.CallbackQuery):
-    if callback.from_user.id != ADMIN_ID:
+    if callback.from_user.id not in ADMIN_IDS:
         return
     push_id = int(callback.data.replace("push_confirm_del_", ""))
     push = await db.get_push_by_id(push_id)
@@ -1253,7 +1253,7 @@ async def push_confirm_delete(callback: types.CallbackQuery):
 
 @dp.callback_query(F.data.startswith("push_do_del_"))
 async def push_do_delete(callback: types.CallbackQuery):
-    if callback.from_user.id != ADMIN_ID:
+    if callback.from_user.id not in ADMIN_IDS:
         return
     push_id = int(callback.data.replace("push_do_del_", ""))
     await db.delete_push(push_id)
