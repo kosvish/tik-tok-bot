@@ -258,7 +258,7 @@ async def send_video_task(message: types.Message, current_video: int, balance: f
     user_data = await state.get_data()
     tasks_queue = user_data.get('tasks_queue')
     if not tasks_queue:
-        tasks_queue = ['like'] * 10 + ['comment'] * 5
+        tasks_queue = ['like'] * 15
         random.shuffle(tasks_queue)
         if tasks_queue[0] == 'comment':
             idx = tasks_queue.index('like')
@@ -442,57 +442,57 @@ async def process_task_done(callback: types.CallbackQuery, state: FSMContext):
         await send_video_task(callback.message, new_video, new_balance, state)
 
 
-@dp.message(VideoState.waiting_for_comment)
-async def process_comment_text(message: types.Message, state: FSMContext):
-    data = await state.get_data()
-    current_time = time.time()
-    unlock_time = data.get("unlock_time", 0)
-    if current_time < unlock_time:
-        remaining = int(unlock_time - current_time)
-        try:
-            await message.delete()
-        except Exception:
-            pass
-        warn = await message.answer(f"⏳ Aspetta ancora {remaining} sec.")
-        task = asyncio.create_task(delete_message_after(warn, 3))
-        background_tasks.add(task)
-        task.add_done_callback(background_tasks.discard)
-        return
-    if len(message.text or "") < 15:
-        try:
-            await message.delete()
-        except Exception:
-            pass
-        warn = await message.answer("⚠️ Commento troppo corto! Minimo 15 caratteri.")
-        asyncio.create_task(delete_message_after(warn, 3))
-        return
-    balance = data.get("balance", 0.0)
-    current_reward = data.get("current_reward", 1.0)
-    user_data = await db.get_user(message.from_user.id)
-    current_video = int(user_data[1]) if user_data else 1
-    new_balance = round(balance + current_reward, 2)
-    new_video = current_video + 1
-    try:
-        await message.delete()
-    except Exception:
-        pass
-    if new_video > 15:
-        total_balance = round(new_balance + 20.0, 2)
-        await db.update_user(message.from_user.id, total_balance, new_video)
-        await state.update_data(balance=total_balance)
-        await state.set_state(None)
-        try:
-            text = LEXICON['finish_task'].format(balance=new_balance, total=total_balance)
-        except Exception:
-            text = f"🎉 Completato! {new_balance}€ + 20€ bonus = {total_balance}€"
-        keyboard = InlineKeyboardMarkup(inline_keyboard=[
-            [InlineKeyboardButton(text=LEXICON.get('btn_menu', 'Menu'), callback_data="main_menu")]
-        ])
-        await message.answer(text, reply_markup=keyboard, parse_mode="HTML")
-    else:
-        await db.update_user(message.from_user.id, new_balance, new_video)
-        await state.update_data(balance=new_balance, current_video=new_video)
-        await send_video_task(message, new_video, new_balance, state, edit=False)
+# @dp.message(VideoState.waiting_for_comment)
+# async def process_comment_text(message: types.Message, state: FSMContext):
+#     data = await state.get_data()
+#     current_time = time.time()
+#     unlock_time = data.get("unlock_time", 0)
+#     if current_time < unlock_time:
+#         remaining = int(unlock_time - current_time)
+#         try:
+#             await message.delete()
+#         except Exception:
+#             pass
+#         warn = await message.answer(f"⏳ Aspetta ancora {remaining} sec.")
+#         task = asyncio.create_task(delete_message_after(warn, 3))
+#         background_tasks.add(task)
+#         task.add_done_callback(background_tasks.discard)
+#         return
+#     if len(message.text or "") < 15:
+#         try:
+#             await message.delete()
+#         except Exception:
+#             pass
+#         warn = await message.answer("⚠️ Commento troppo corto! Minimo 15 caratteri.")
+#         asyncio.create_task(delete_message_after(warn, 3))
+#         return
+#     balance = data.get("balance", 0.0)
+#     current_reward = data.get("current_reward", 1.0)
+#     user_data = await db.get_user(message.from_user.id)
+#     current_video = int(user_data[1]) if user_data else 1
+#     new_balance = round(balance + current_reward, 2)
+#     new_video = current_video + 1
+#     try:
+#         await message.delete()
+#     except Exception:
+#         pass
+#     if new_video > 15:
+#         total_balance = round(new_balance + 20.0, 2)
+#         await db.update_user(message.from_user.id, total_balance, new_video)
+#         await state.update_data(balance=total_balance)
+#         await state.set_state(None)
+#         try:
+#             text = LEXICON['finish_task'].format(balance=new_balance, total=total_balance)
+#         except Exception:
+#             text = f"🎉 Completato! {new_balance}€ + 20€ bonus = {total_balance}€"
+#         keyboard = InlineKeyboardMarkup(inline_keyboard=[
+#             [InlineKeyboardButton(text=LEXICON.get('btn_menu', 'Menu'), callback_data="main_menu")]
+#         ])
+#         await message.answer(text, reply_markup=keyboard, parse_mode="HTML")
+#     else:
+#         await db.update_user(message.from_user.id, new_balance, new_video)
+#         await state.update_data(balance=new_balance, current_video=new_video)
+#         await send_video_task(message, new_video, new_balance, state, edit=False)
 
 
 # ─────────────────────────────────────────
