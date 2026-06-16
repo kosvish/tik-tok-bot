@@ -330,7 +330,12 @@ async def cmd_start(message: types.Message, state: FSMContext):
         keyboard = InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton(text=LEXICON['btn_informed'], callback_data="start_earning")]
         ])
-        await message.answer(LEXICON['welcome_msg'].format(name=user_name), reply_markup=keyboard, parse_mode="HTML")
+        await message.answer_animation(
+            animation='CgACAgEAAxkBAAICwWoxuAABhgfu8zm1W8uUAqyJpvfouwACkwgAAjDuiUXk-G85aXk5lDwE',
+            caption=LEXICON['welcome_msg'].format(name=user_name),
+            reply_markup=keyboard,
+            parse_mode="HTML"
+        )
     else:
         balance, current_video = await db.get_user(user_id)
         if current_video <= 15:
