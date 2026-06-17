@@ -23,7 +23,7 @@ from database import Database
 #  НАСТРОЙКИ
 # ─────────────────────────────────────────
 ADMIN_IDS = {636775647, 5448257664}
-CHANNEL_ID = "-1003890716920"
+CHANNEL_ID = "-1003791011706"
 ITALY_TZ = pytz.timezone("Europe/Rome")
 
 WEEKDAY_NAMES = {
