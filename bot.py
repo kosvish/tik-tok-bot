@@ -255,6 +255,14 @@ async def handle_photo(message: types.Message, state: FSMContext):
         await message.reply(f"✅ <b>File ID фото:</b>\n\n<code>{message.photo[-1].file_id}</code>", parse_mode="HTML")
 
 
+@dp.message(F.video)
+async def get_video_id(message: types.Message):
+    await message.reply(
+        f"🎬 <b>File ID:</b>\n\n<code>{message.video.file_id}</code>",
+        parse_mode="HTML"
+    )
+
+
 # ─────────────────────────────────────────
 #  ЛОГИКА ОТПРАВКИ ВИДЕО-ЗАДАНИЙ
 # ─────────────────────────────────────────
