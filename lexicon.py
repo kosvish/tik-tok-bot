@@ -78,7 +78,7 @@ LEXICON = {
         'BAACAgIAAxkBAAMfajHi6yt-mavwam7tMw1tdAvJIaEAAo6ZAAKEc5BJ5Qa8cCXCyyk8BA',
         'BAACAgIAAxkBAAMjajHi9FdhqD2spnRudPDjxSaI2M4AApCZAAKEc5BJ-OZQlqBy_NI8BA',
         'BAACAgIAAxkBAAMlajHi9657A_yT8EMpZAPRTQ4FdWUAApGZAAKEc5BJl2Ux4XeS7cc8BA',
-        'BAACAgEAAxkBAAICNmosXdDaIY1YoO4eppaZA9W9CG7sAALrCQACJqlgRZQkGjdBGZHtPAQ'
+        'BAACAgEAAxkBAANKajMkvD4DBQqU8as-3ef9PGPDhdwAAlIIAAKhB5lFEN5a78-qEH88BA'
     ],
 # --- ГЛАВНОЕ МЕНЮ (Как на скрине 3 и 4) ---
     'main_menu_text': "Scegli l'opzione dal menù ⤵️",
