@@ -123,7 +123,12 @@ def type_keyboard(cancel_cb: str = "admin_pushes") -> InlineKeyboardMarkup:
         [InlineKeyboardButton(text="❌ Отмена", callback_data=cancel_cb)]
     ])
 
-
+@dp.message(F.animation)
+async def get_animation_id(message: types.Message):
+    await message.reply(
+        f"🎬 <b>Animation File ID:</b>\n\n<code>{message.animation.file_id}</code>",
+        parse_mode="HTML"
+    )
 # ─────────────────────────────────────────
 #  ПЛАНИРОВЩИК ПУШЕЙ
 # ─────────────────────────────────────────
